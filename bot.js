@@ -67,7 +67,7 @@ client.on('message', msg => {
 
     // !solarium — boas-vindas
     if (lower === '!solarium') {
-        msg.reply('Hello world my name is solarium. Can I help you today?');
+        msg.reply('Ola, eu sou solarium ☀️');
         return;
     }
 
