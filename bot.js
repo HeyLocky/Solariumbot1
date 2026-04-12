@@ -5,9 +5,10 @@ const http = require('http');
 const fs = require('fs');
 
 const DADOS_PATH = './dados.json';
+const TAREFAS_PATH = './tarefas.json';
 const PORT = process.env.PORT || 3000;
 
-// ====== FUNÇÕES ======
+// ====== GASTOS ======
 
 function carregarTotal() {
     if (fs.existsSync(DADOS_PATH)) {
@@ -37,6 +38,7 @@ const server = http.createServer(async (req, res) => {
     if (req.url === '/qr') {
 
         if (!qrDataUrl) {
+
             res.writeHead(200, {
                 'Content-Type': 'text/html; charset=utf-8'
             });
@@ -93,7 +95,7 @@ server.listen(PORT, () => {
     console.log("Servidor iniciado");
 });
 
-// ====== CLIENTE WHATSAPP ======
+// ====== WHATSAPP ======
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -225,6 +227,115 @@ R$${total.toFixed(2)}`
         return;
     }
 
+    // ====== !tarefa ======
+
+    if (lower === '!tarefa') {
+
+        const tarefasPrincipais = [
+            "Limpar Quarto",
+            "Limpar Banheiro",
+            "Limpar Cozinha",
+            "Limpar Quintal (folga juntas)",
+            "Limpar Quartinho"
+        ];
+
+        const tarefasSecundarias = [
+            "Lavar louça",
+            "Limpar fogão",
+            "Limpar mesa",
+            "Colocar ração para Savannah",
+            "Juntar o lixo",
+            "Jogar o lixo"
+        ];
+
+        function sorteio(lista) {
+            return lista[
+                Math.floor(Math.random() * lista.length)
+            ];
+        }
+
+        const hoje =
+            new Date().toLocaleDateString('pt-BR');
+
+        let dadosDia = null;
+
+        if (fs.existsSync(TAREFAS_PATH)) {
+
+            dadosDia = JSON.parse(
+                fs.readFileSync(
+                    TAREFAS_PATH,
+                    'utf-8'
+                )
+            );
+
+            if (dadosDia.data !== hoje) {
+                dadosDia = null;
+            }
+        }
+
+        if (!dadosDia) {
+
+            const jantarIndex =
+                Math.floor(Math.random() * 2);
+
+            dadosDia = {
+                data: hoje,
+
+                pessoas: [
+                    {
+                        nome: "PAULO",
+                        principal: sorteio(
+                            tarefasPrincipais
+                        ),
+                        secundaria: sorteio(
+                            tarefasSecundarias
+                        ),
+                        jantar: jantarIndex === 0
+                    },
+                    {
+                        nome: "KATHLEEN",
+                        principal: sorteio(
+                            tarefasPrincipais
+                        ),
+                        secundaria: sorteio(
+                            tarefasSecundarias
+                        ),
+                        jantar: jantarIndex === 1
+                    }
+                ]
+            };
+
+            fs.writeFileSync(
+                TAREFAS_PATH,
+                JSON.stringify(dadosDia)
+            );
+        }
+
+        let resposta =
+`🧹 *TAREFAS DO DIA*
+📅 ${dadosDia.data}
+
+`;
+
+        dadosDia.pessoas.forEach(p => {
+
+            resposta += `👤 *${p.nome}:*\n`;
+            resposta += `• ${p.principal}\n`;
+            resposta += `• ${p.secundaria}\n`;
+
+            if (p.jantar) {
+                resposta +=
+`🍳 *BÔNUS: FAZER JANTAR*\n`;
+            }
+
+            resposta += `\n`;
+        });
+
+        msg.reply(resposta);
+
+        return;
+    }
+
     // ====== !comandos ======
 
     if (lower === '!comandos') {
@@ -234,32 +345,26 @@ R$${total.toFixed(2)}`
 
 📌 *COMANDOS DISPONÍVEIS*
 
-➕ *Adicionar gasto*
-Digite:
+➕ Adicionar gasto
 +valor
 
-➖ *Remover gasto*
-Digite:
+➖ Remover gasto
 -valor
 
-📊 *Ver total*
-Digite:
+📊 Ver total
 !gastos
 
-🔄 *Resetar total*
-Digite:
+🔄 Resetar total
 !reset
 
-🤖 *Status do bot*
-Digite:
+🧹 Tarefas do dia
+!tarefa
+
+🤖 Status do bot
 !status
 
-📋 *Ver comandos*
-Digite:
-!comandos
-
-💡 *Dica:*
-Use vírgula ou ponto nos valores!`
+📋 Ver comandos
+!comandos`
         );
 
         return;
